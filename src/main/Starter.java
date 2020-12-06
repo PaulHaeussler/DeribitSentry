@@ -11,6 +11,7 @@ import util.Printer;
 import util.Utility;
 
 import java.io.PrintStream;
+import java.text.DecimalFormat;
 import java.util.HashMap;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -92,7 +93,7 @@ public class Starter {
                 diff = t.strikePrice - index;
             }
 
-            Printer.printToLog(t.instrumentName + " diff to strike: " + diff, INFO);
+
 
             LinkedTreeMap map = api.getBookSummary(t.instrumentName);
             double ask = (Double) map.get("ask_price");
@@ -100,6 +101,9 @@ public class Starter {
             double maxPrice = avgPrem * MAX_PRICE_INCREASE_MULIPLIER;
             double priceDiff = ask - avgPrem;
             double currPrice = Math.abs(priceDiff * t.openPos);
+
+            DecimalFormat df = new DecimalFormat("#.00");
+            Printer.printToLog(t.instrumentName + " diff to strike: " + df.format(diff) + "; MaxPrice: " + df.format(maxPrice) + " - Ask: " + df.format(ask) + "; CurrPrice: " + df.format(priceDiff * t.openPos), INFO);
 
             boolean criteriaA = diff < 0;
             boolean criteriaB = maxPrice < ask;
