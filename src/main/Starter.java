@@ -2,6 +2,9 @@ package main;
 
 
 import com.google.gson.internal.LinkedTreeMap;
+import db.DBThread;
+import db.Database;
+import db.DatabaseSetup;
 import movements.Moment;
 import movements.Movement;
 import movements.Option;
@@ -17,16 +20,21 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.TreeMap;
 
+import static main.ApiController.CURRENCY.BTC;
+import static main.ApiController.CURRENCY.ETH;
 import static util.Printer.LOGTYPE.INFO;
 
 public class Starter {
 
     public static String repo = "";
 
-    private static final double MAX_PRICE_INCREASE_MULIPLIER = 2; //= 100% loss
+    private static final double MAX_PRICE_INCREASE_MULIPLIER = 2.5; //= 150% loss
     private static final double HARD_STOP_BTC_LOSS = 0.05;
+    private static final double HARD_STOP_ETH_LOSS = 1.0;
 
     private static ApiController api;
+    public static Database db;
+    public static String db_schema = "";
 
     public static HashMap<String, String> userMappingsBTC;
     public static HashMap<String, String> userMappingsETH;
@@ -37,9 +45,12 @@ public class Starter {
         a = args;
 
         Printer.checkSetup();
-        repo = Utility.checkStartupArgs(args);
+        HashMap<String, String> argmap = Utility.checkStartupArgs(args);
+        repo = argmap.get("repo");
+        db_schema = argmap.get("dbname");
         Printer.printToLog("Sentry starting up...", INFO);
-
+        db = new Database(argmap.get("user"), argmap.get("pw"), argmap.get("host"), argmap.get("dbname"));
+        DatabaseSetup.checkSetup();
 
         api = new ApiController();
         api.authenticate(new Credentials(repo + "/api.key"));
@@ -50,9 +61,12 @@ public class Starter {
 
         while(true){
             try{
-                TreeMap<Double, Moment> hb = ApiController.compileTradeList(api,true, ApiController.CURRENCY.BTC);
-                TreeMap<Double, Moment> he = ApiController.compileTradeList(api,true, ApiController.CURRENCY.ETH);
+                TreeMap<Double, Moment> hb = ApiController.compileTradeList(api,true, BTC);
+                TreeMap<Double, Moment> he = ApiController.compileTradeList(api,true, ETH);
 
+                Runnable r = new DBThread(hb, he, api.getIndex(ApiController.CURRENCY.BTC), api.getIndex(ApiController.CURRENCY.ETH));
+                Thread t = new Thread(r);
+                t.start();
 
                 for(Moment moment : hb.values()){
                     if(moment.movement instanceof Trade){
@@ -97,17 +111,24 @@ public class Starter {
 
             LinkedTreeMap map = api.getBookSummary(t.instrumentName);
             double ask = (Double) map.get("ask_price");
-            double avgPrem = Math.abs(t.getChange() / t.openPos);
+            double avgPrem = Math.abs(t.maxGain / t.openPos);
             double maxPrice = avgPrem * MAX_PRICE_INCREASE_MULIPLIER;
             double priceDiff = ask - avgPrem;
-            double currPrice = Math.abs(priceDiff * t.openPos);
+            double currPrice = priceDiff * t.openPos;
 
             DecimalFormat df = new DecimalFormat("#.00");
-            Printer.printToLog(t.instrumentName + " diff to strike: " + df.format(diff) + "; MaxPrice: " + df.format(maxPrice) + " - Ask: " + df.format(ask) + "; CurrPrice: " + df.format(priceDiff * t.openPos), INFO);
+            DecimalFormat df2 = new DecimalFormat("0.00000");
+            Printer.printToLog(t.instrumentName + " diff to strike: " + df.format(diff) + "; MaxPrice: " + df2.format(maxPrice) + " - Ask: " + df2.format(ask) + "; CurrVal: " + df2.format(currPrice), INFO);
 
+            double stopLoss = 1000.0;
+            if(t.currency == BTC){
+                stopLoss = HARD_STOP_BTC_LOSS;
+            } else if(t.currency == ETH){
+                stopLoss = HARD_STOP_ETH_LOSS;
+            }
             boolean criteriaA = diff < 0;
             boolean criteriaB = maxPrice < ask;
-            boolean criteriaC = (currPrice > HARD_STOP_BTC_LOSS) && (priceDiff > 0);
+            boolean criteriaC = (currPrice > stopLoss);
 
             if(criteriaA || criteriaB || criteriaC){
                 Printer.printToLog("A: " + criteriaA + ", B: " + criteriaB + ", C: " + criteriaC, INFO);
@@ -124,9 +145,9 @@ public class Starter {
 
 
     public static HashMap<String, String> getUserMappingByCurrency(ApiController.CURRENCY currency){
-        if(currency == ApiController.CURRENCY.BTC){
+        if(currency == BTC){
             return userMappingsBTC;
-        } else if(currency == ApiController.CURRENCY.ETH) {
+        } else if(currency == ETH) {
             return userMappingsETH;
         }
         return null;
