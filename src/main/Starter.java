@@ -133,7 +133,7 @@ public class Starter {
             if(criteriaA || criteriaB || criteriaC){
                 Printer.printToLog("A: " + criteriaA + ", B: " + criteriaB + ", C: " + criteriaC, INFO);
                 Printer.printToLog("Killing " + t.instrumentName, INFO);
-                api.killPosition(t);
+                //api.killPosition(t);
 
             }
 

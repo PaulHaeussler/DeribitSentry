@@ -74,17 +74,17 @@ public class DBThread implements Runnable {
                     hash + "', " +
                     compiledListBTC.lastEntry().getValue().userCapitalNew.get(user) + ", " +
                     compiledListBTC.lastEntry().getValue().userCapitalNew.get(user) * indexBTC + ", " +
-                    valsBTC[0] + ", " +
-                    valsBTC[0] * indexBTC + ", " +
-                    valsBTC[1] + ", " +
-                    valsBTC[1] * indexBTC + ", '" +
+                    compiledListBTC.lastEntry().getValue().capitalShare.get(user) * valsBTC[0] + ", " +
+                    compiledListBTC.lastEntry().getValue().capitalShare.get(user) * valsBTC[0] * indexBTC + ", " +
+                    compiledListBTC.lastEntry().getValue().capitalShare.get(user) * valsBTC[1] + ", " +
+                    compiledListBTC.lastEntry().getValue().capitalShare.get(user) * valsBTC[1] * indexBTC + ", '" +
                     getLongestExpiryDate(compiledListBTC) + "', " +
                     compiledListETH.lastEntry().getValue().userCapitalNew.get(user) + ", " +
                     compiledListETH.lastEntry().getValue().userCapitalNew.get(user) * indexETH + ", " +
-                    valsETH[0] + ", " +
-                    valsETH[0] * indexETH + ", " +
-                    valsETH[1] + ", " +
-                    valsETH[1] * indexETH + ", '" +
+                    compiledListETH.lastEntry().getValue().capitalShare.get(user) * valsETH[0] + ", " +
+                    compiledListETH.lastEntry().getValue().capitalShare.get(user) * valsETH[0] * indexETH + ", " +
+                    compiledListETH.lastEntry().getValue().capitalShare.get(user) * valsETH[1] + ", " +
+                    compiledListETH.lastEntry().getValue().capitalShare.get(user) * valsETH[1] * indexETH + ", '" +
                     getLongestExpiryDate(compiledListETH) + "', " +
                     (compiledListBTC.lastEntry().getValue().userCapitalNew.get(user) * indexBTC + compiledListETH.lastEntry().getValue().userCapitalNew.get(user) * indexETH) + ");");
         }
