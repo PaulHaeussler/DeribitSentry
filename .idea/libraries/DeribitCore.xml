@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="DeribitCore">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/../.mavenRepo/DeribitCore.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
