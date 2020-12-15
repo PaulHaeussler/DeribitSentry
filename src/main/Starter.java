@@ -86,7 +86,8 @@ public class Starter {
                 Thread t = new Thread(r);
                 t.start();
 
-                Thread.sleep(1000 - (System.currentTimeMillis() - start));
+                long timeDiff = System.currentTimeMillis() - start;
+                if(timeDiff < 1000) Thread.sleep(1000 - timeDiff);
             } catch (Exception e){
                 Printer.printException(e);
                 System.exit(1);
