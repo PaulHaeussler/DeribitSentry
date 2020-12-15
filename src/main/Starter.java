@@ -28,9 +28,9 @@ public class Starter {
 
     public static String repo = "";
 
-    private static final double MAX_PRICE_INCREASE_MULIPLIER = 2.5; //= 150% loss
-    private static final double HARD_STOP_BTC_LOSS = 0.05;
-    private static final double HARD_STOP_ETH_LOSS = 1.0;
+    private static final double MAX_PRICE_INCREASE_MULIPLIER = 3; //= 300% loss
+    private static final double HARD_STOP_BTC_LOSS = -0.05;
+    private static final double HARD_STOP_ETH_LOSS = -1.0;
 
     private static ApiController api;
     public static Database db;
@@ -44,7 +44,7 @@ public class Starter {
     public static void main(String[] args){
         a = args;
 
-        Printer.checkSetup();
+        Printer.checkSetup("DeribitSentry");
         HashMap<String, String> argmap = Utility.checkStartupArgs(args);
         repo = argmap.get("repo");
         db_schema = argmap.get("dbname");
@@ -61,12 +61,10 @@ public class Starter {
 
         while(true){
             try{
+                long start = System.currentTimeMillis();
                 TreeMap<Double, Moment> hb = ApiController.compileTradeList(api,true, BTC);
                 TreeMap<Double, Moment> he = ApiController.compileTradeList(api,true, ETH);
 
-                Runnable r = new DBThread(hb, he, api.getIndex(ApiController.CURRENCY.BTC), api.getIndex(ApiController.CURRENCY.ETH));
-                Thread t = new Thread(r);
-                t.start();
 
                 for(Moment moment : hb.values()){
                     if(moment.movement instanceof Trade){
@@ -84,7 +82,11 @@ public class Starter {
                     }
                 }
 
-                Thread.sleep(500);
+                Runnable r = new DBThread(hb, he, api.getIndex(ApiController.CURRENCY.BTC), api.getIndex(ApiController.CURRENCY.ETH));
+                Thread t = new Thread(r);
+                t.start();
+
+                Thread.sleep(1000 - (System.currentTimeMillis() - start));
             } catch (Exception e){
                 Printer.printException(e);
                 System.exit(1);
@@ -95,30 +97,30 @@ public class Starter {
     private static void evaluatePosition(Moment pos) throws Exception {
         Trade t = (Trade) pos.movement;
         if(t.openPos < 0){
-            Double index = api.getIndex(t.currency);
+            t.index = api.getIndex(t.currency);
 
             //pos diff == out of money; neg diff == in the money
-            double diff = 0.0;
+            t.diffToStrike = 0.0;
 
             if(t.kind == Option.KIND.PUT){
-                diff = index - t.strikePrice;
+                t.diffToStrike = t.index - t.strikePrice;
             }
             if(t.kind == Option.KIND.CALL){
-                diff = t.strikePrice - index;
+                t.diffToStrike = t.strikePrice - t.index;
             }
 
 
 
             LinkedTreeMap map = api.getBookSummary(t.instrumentName);
-            double ask = (Double) map.get("ask_price");
-            double avgPrem = Math.abs(t.maxGain / t.openPos);
-            double maxPrice = avgPrem * MAX_PRICE_INCREASE_MULIPLIER;
-            double priceDiff = ask - avgPrem;
-            double currPrice = priceDiff * t.openPos;
+            t.ask = (Double) map.get("ask_price");
+            t.avgPrem = Math.abs(t.maxGain / t.openPos);
+            t.maxPrice = t.avgPrem * MAX_PRICE_INCREASE_MULIPLIER;
+            t.priceDiff = t.ask - t.avgPrem;
+            t.currPrice = t.priceDiff * t.openPos;
 
             DecimalFormat df = new DecimalFormat("#.00");
             DecimalFormat df2 = new DecimalFormat("0.00000");
-            Printer.printToLog(t.instrumentName + " diff to strike: " + df.format(diff) + "; MaxPrice: " + df2.format(maxPrice) + " - Ask: " + df2.format(ask) + "; CurrVal: " + df2.format(currPrice), INFO);
+            Printer.printToLog(t.instrumentName + " diff to strike: " + df.format(t.diffToStrike) + "; MaxPrice: " + df2.format(t.maxPrice) + " - Ask: " + df2.format(t.ask) + "; CurrVal: " + df2.format(t.currPrice), INFO);
 
             double stopLoss = 1000.0;
             if(t.currency == BTC){
@@ -126,14 +128,14 @@ public class Starter {
             } else if(t.currency == ETH){
                 stopLoss = HARD_STOP_ETH_LOSS;
             }
-            boolean criteriaA = diff < 0;
-            boolean criteriaB = maxPrice < ask;
-            boolean criteriaC = (currPrice > stopLoss);
+            boolean criteriaA = t.diffToStrike < 0;
+            boolean criteriaB = t.maxPrice < t.ask;
+            boolean criteriaC = (t.currPrice < stopLoss);
 
             if(criteriaA || criteriaB || criteriaC){
                 Printer.printToLog("A: " + criteriaA + ", B: " + criteriaB + ", C: " + criteriaC, INFO);
                 Printer.printToLog("Killing " + t.instrumentName, INFO);
-                //api.killPosition(t);
+                api.killPosition(t);
 
             }
 

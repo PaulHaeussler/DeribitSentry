@@ -27,6 +27,7 @@ public class DBThread implements Runnable {
     public void run() {
         compileCurrBal();
         compileCurrTrades();
+        compileCombinedHistory();
     }
 
     private void compileCurrTrades(){
@@ -90,6 +91,22 @@ public class DBThread implements Runnable {
         }
     }
 
+    private void compileCombinedHistory(){
+        double[] valsBTC = getOpenTradeVals(compiledListBTC);
+        double[] valsETH = getOpenTradeVals(compiledListETH);
+
+        Starter.db.runInsert("INSERT INTO " + Starter.db_schema + ".combined_history VALUES(" +
+        indexBTC + ", " +
+        compiledListBTC.lastEntry().getValue().totalBalanceNew + ", " +
+        valsBTC[1] + ", " +
+        valsBTC[0] + ", " +
+        indexETH + ", " +
+        compiledListETH.lastEntry().getValue().totalBalanceNew + ", " +
+        valsETH[1] + ", " +
+        valsETH[0] + ");"
+        );
+    }
+
     private double[] getOpenTradeVals(TreeMap<Double, Moment> map){
         double[] results = new double[2]; //0 max val; 1 curr val
         results[0] = 0.0;
@@ -99,7 +116,7 @@ public class DBThread implements Runnable {
                 Trade t = (Trade) m.movement;
                 if(t.state == Option.STATE.OPEN){
                     results[0] += t.maxGain;
-                    results[1] += t.change;
+                    results[1] += t.currPrice;
                 }
             }
         }

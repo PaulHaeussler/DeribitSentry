@@ -14,7 +14,7 @@ public class DatabaseSetup {
 
         if(!checkForTable("curr_bal"))createCurrentBalancesTable();
         if(!checkForTable("curr_trades"))createCurrentTradesTable();
-        if(!checkForTable("history_trades"))createHistoryTradesTable();
+        if(!checkForTable("combined_history"))createCombinedHistoryTradesTable();
         if(!checkForTable("history_options"))createHistoryOptionsTable();
         if(!checkForTable("history_deliveries"))createHistoryDeliveriesTable();
 
@@ -79,8 +79,21 @@ public class DatabaseSetup {
                 "COLLATE = utf8mb4_unicode_ci;");
     }
 
-    private static void createHistoryTradesTable(){
-
+    private static void createCombinedHistoryTradesTable(){
+        Starter.db.runInsert("CREATE TABLE `" + Starter.db_schema + "`.`combined_history` (\n" +
+                "  `timestamp` BIGINT(10) NOT NULL,\n" +
+                "  `btc_index` DOUBLE NOT NULL,\n" +
+                "  `btc_val` DOUBLE NOT NULL,\n" +
+                "  `btc_open_pos_val` DOUBLE NOT NULL,\n" +
+                "  `btc_open_pos_max_val` DOUBLE NOT NULL,\n" +
+                "  `eth_index` DOUBLE NOT NULL,\n" +
+                "  `eth_val` DOUBLE NOT NULL,\n" +
+                "  `eth_open_pos_val` DOUBLE NOT NULL,\n" +
+                "  `eth_open_pos_max_val` DOUBLE NOT NULL,\n" +
+                "  PRIMARY KEY (`timestamp`))\n" +
+                "ENGINE = InnoDB\n" +
+                "DEFAULT CHARACTER SET = utf8mb4\n" +
+                "COLLATE = utf8mb4_unicode_ci;\n");
     }
 
     private static void createHistoryOptionsTable(){
