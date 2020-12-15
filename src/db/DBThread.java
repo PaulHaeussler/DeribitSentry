@@ -15,6 +15,7 @@ public class DBThread implements Runnable {
     private TreeMap<Double, Moment> compiledListETH;
     private double indexBTC;
     private double indexETH;
+    private long timestamp;
 
     public DBThread(TreeMap<Double, Moment> listBTC, TreeMap<Double, Moment> listETH, double iBTC, double iETH){
         compiledListBTC = listBTC;
@@ -25,6 +26,7 @@ public class DBThread implements Runnable {
 
     @Override
     public void run() {
+        timestamp = System.currentTimeMillis();
         compileCurrBal();
         compileCurrTrades();
         compileCombinedHistory();
@@ -96,6 +98,7 @@ public class DBThread implements Runnable {
         double[] valsETH = getOpenTradeVals(compiledListETH);
 
         Starter.db.runInsert("INSERT INTO " + Starter.db_schema + ".combined_history VALUES(" +
+        timestamp + ", " +
         indexBTC + ", " +
         compiledListBTC.lastEntry().getValue().totalBalanceNew + ", " +
         valsBTC[1] + ", " +
