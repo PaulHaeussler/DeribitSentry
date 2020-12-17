@@ -6,6 +6,7 @@ import movements.Option;
 import movements.Trade;
 import util.Utility;
 
+import java.text.DecimalFormat;
 import java.util.Date;
 import java.util.TreeMap;
 
@@ -39,6 +40,7 @@ public class DBThread implements Runnable {
     }
 
     private void insertTrades(TreeMap<Double, Moment> compiledList, double index) {
+        DecimalFormat df = new DecimalFormat("0.0");
         for(Moment m : compiledList.values()){
             if(m.movement instanceof Trade){
                 Trade t = (Trade) m.movement;
@@ -54,7 +56,7 @@ public class DBThread implements Runnable {
                             t.state + "', '" +
                             t.initialRuntime + "', '" +
                             t.timeRemaining + "', '" +
-                            t.openPos + "', " +
+                            df.format(t.openPos) + "', " +
                             t.change + ", " +
                             currValUSD + ", " +
                             t.maxGain + ", " +
