@@ -28,9 +28,10 @@ public class Starter {
 
     public static String repo = "";
 
+    private static final long MILLIES_INTERVAL = 5000;
     private static final double MAX_PRICE_INCREASE_MULIPLIER = 3; //= 300% loss
     private static final double HARD_STOP_BTC_LOSS = -0.05;
-    private static final double HARD_STOP_ETH_LOSS = -1.0;
+    private static final double HARD_STOP_ETH_LOSS = -2.0;
 
     private static ApiController api;
     public static Database db;
@@ -87,7 +88,7 @@ public class Starter {
                 t.start();
 
                 long timeDiff = System.currentTimeMillis() - start;
-                if(timeDiff < 1000) Thread.sleep(1000 - timeDiff);
+                if(timeDiff < MILLIES_INTERVAL) Thread.sleep(MILLIES_INTERVAL - timeDiff);
             } catch (Exception e){
                 Printer.printException(e);
                 System.exit(1);
@@ -98,30 +99,10 @@ public class Starter {
     private static void evaluatePosition(Moment pos) throws Exception {
         Trade t = (Trade) pos.movement;
         if(t.openPos < 0){
-            t.index = api.getIndex(t.currency);
-
-            //pos diff == out of money; neg diff == in the money
-            t.diffToStrike = 0.0;
-
-            if(t.kind == Option.KIND.PUT){
-                t.diffToStrike = t.index - t.strikePrice;
-            }
-            if(t.kind == Option.KIND.CALL){
-                t.diffToStrike = t.strikePrice - t.index;
-            }
 
 
-
-            LinkedTreeMap map = api.getBookSummary(t.instrumentName);
-            t.ask = (Double) map.get("ask_price");
-            t.avgPrem = Math.abs(t.maxGain / t.openPos);
             t.maxPrice = t.avgPrem * MAX_PRICE_INCREASE_MULIPLIER;
-            t.priceDiff = t.ask - t.avgPrem;
-            t.currPrice = t.priceDiff * t.openPos;
 
-            DecimalFormat df = new DecimalFormat("#.00");
-            DecimalFormat df2 = new DecimalFormat("0.00000");
-            Printer.printToLog(t.instrumentName + " diff to strike: " + df.format(t.diffToStrike) + "; MaxPrice: " + df2.format(t.maxPrice) + " - Ask: " + df2.format(t.ask) + "; CurrVal: " + df2.format(t.currPrice), INFO);
 
             double stopLoss = 1000.0;
             if(t.currency == BTC){
@@ -131,17 +112,18 @@ public class Starter {
             }
             boolean criteriaA = t.diffToStrike < 0;
             boolean criteriaB = t.maxPrice < t.ask;
-            boolean criteriaC = (t.currPrice < stopLoss);
+            boolean criteriaC = (t.currValue < stopLoss);
 
             if(criteriaA || criteriaB || criteriaC){
                 Printer.printToLog("A: " + criteriaA + ", B: " + criteriaB + ", C: " + criteriaC, INFO);
+                if(Utility.noKill) return;
                 Printer.printToLog("Killing " + t.instrumentName, INFO);
                 api.killPosition(t);
 
             }
-
         } else {
-            Printer.printError("Positive options position supplied, cannot evaluate for option buys!");
+
+
         }
     }
 

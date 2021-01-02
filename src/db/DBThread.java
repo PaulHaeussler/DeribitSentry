@@ -45,7 +45,7 @@ public class DBThread implements Runnable {
             if(m.movement instanceof Trade){
                 Trade t = (Trade) m.movement;
                 if(t.state == Option.STATE.OPEN){
-                    double currValUSD = t.change * index;
+                    double currValUSD = t.currValue * index;
                     double maxValUSD = t.maxGain * index;
                     Starter.db.runInsert("INSERT INTO " + Starter.db_schema + ".curr_trades VALUES('" +
                             t.instrumentName + "', '" +
@@ -57,7 +57,7 @@ public class DBThread implements Runnable {
                             t.initialRuntime + "', '" +
                             t.timeRemaining + "', '" +
                             df.format(t.openPos) + "', " +
-                            t.change + ", " +
+                            t.currValue + ", " +
                             currValUSD + ", " +
                             t.maxGain + ", " +
                             maxValUSD + ");");
@@ -121,7 +121,7 @@ public class DBThread implements Runnable {
                 Trade t = (Trade) m.movement;
                 if(t.state == Option.STATE.OPEN){
                     results[0] += t.maxGain;
-                    results[1] += t.currPrice;
+                    results[1] += t.currValue;
                 }
             }
         }
